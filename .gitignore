@@ -1,0 +1,10 @@
+.deps/
+out/
+__pycache__/
+*.pyc
+*.elf
+*.o
+*.map
+*.zip
+*.tar.xz
+sdk/

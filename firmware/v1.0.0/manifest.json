@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "build": "TYPE2DK_DIRECT_RANGE_V1",
+  "binaries": [
+    {
+      "node": 19,
+      "file": "2dk_range_node19_v1.bin",
+      "bytes": 277376,
+      "sha256": "ca40093e744055571a1f6f023e740e3ce6d6bf1be343add24ad5afb33bb490a0"
+    },
+    {
+      "node": 21,
+      "file": "2dk_range_node21_v1.bin",
+      "bytes": 276888,
+      "sha256": "07b787c53d77af9ff1733daa648fcab39e01acfa8b0df82a88b5268401972993"
+    },
+    {
+      "node": 22,
+      "file": "2dk_range_node22_v1.bin",
+      "bytes": 276888,
+      "sha256": "0cbabe4d6b1730134607150a174e2b641c8f7440035158ad0201f6b5ce92f791"
+    }
+  ]
+}

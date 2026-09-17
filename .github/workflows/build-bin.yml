@@ -1,0 +1,61 @@
+name: Build BINs
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-configuration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      configured: ${{ steps.sdk.outputs.configured }}
+    steps:
+      - id: sdk
+        name: Check private SDK configuration
+        env:
+          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ -n "$SDK_DOWNLOAD_URL" ]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'configured=false' >> "$GITHUB_OUTPUT"
+            echo 'SDK_DOWNLOAD_URL is not configured. No BINs were built. Follow docs/BUILD.md.' >> "$GITHUB_STEP_SUMMARY"
+            if [ "$EVENT_NAME" = workflow_dispatch ]; then
+              echo '::error::Set SDK_DOWNLOAD_URL before running Build BINs.'
+              exit 1
+            fi
+          fi
+  firmware:
+    needs: sdk-configuration
+    if: needs.sdk-configuration.outputs.configured == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Exercise recovery logic
+        run: bash validation/host/run_tests.sh
+      - name: Download and prepare licensed SDK
+        env:
+          SDK_DOWNLOAD_URL: ${{ secrets.SDK_DOWNLOAD_URL }}
+        run: python3 build/sdk_bundle.py fetch --out .deps/sdk
+      - name: Install Arm GNU Toolchain 13.2.Rel1
+        run: |
+          mkdir -p .deps/toolchain
+          curl --fail --location --retry 3 --max-time 300 \
+            'https://developer.arm.com/-/media/Files/downloads/gnu/13.2.Rel1/binrel/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi.tar.xz' \
+            --output .deps/toolchain.tar.xz
+          echo '6cd1bbc1d9ae57312bcd169ae283153a9572bd6a8e4eeae2fedfbc33b115fdbb  .deps/toolchain.tar.xz' | sha256sum --check
+          tar -xJf .deps/toolchain.tar.xz --strip-components=1 -C .deps/toolchain
+          .deps/toolchain/bin/arm-none-eabi-gcc --version
+      - name: Build and validate three BINs
+        run: python3 build/build_all.py --sdk .deps/sdk --gcc-bin .deps/toolchain/bin --out out
+      - name: Upload firmware and Windows flashing script
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: type2dk-bins-${{ github.sha }}
+          path: out/firmware/
+          if-no-files-found: error
+          retention-days: 30

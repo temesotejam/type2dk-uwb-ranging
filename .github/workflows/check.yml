@@ -1,0 +1,22 @@
+name: Validate source and baseline BINs
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Exercise ranging and recovery (ASan and UBSan)
+        run: bash validation/host/run_tests.sh
+      - name: Verify baseline boot headers and SHA256
+        run: python3 build/verify_bins.py firmware/v1.0.0
+      - name: Check flashing preflight without hardware
+        shell: pwsh
+        run: ./validation/test_flash.ps1
+      - name: Check Python syntax
+        run: python3 -m compileall -q build
